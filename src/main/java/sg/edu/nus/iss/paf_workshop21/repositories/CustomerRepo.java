@@ -95,7 +95,7 @@ public class CustomerRepo {
             if (null == customer){
                 return Optional.empty();
             }else{
-                return Optional.of(customer);
+                throw ex;
             }
     
         }
