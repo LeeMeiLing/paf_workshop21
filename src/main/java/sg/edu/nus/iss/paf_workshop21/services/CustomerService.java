@@ -26,7 +26,7 @@ public class CustomerService {
 
     }
 
-    public List<Order> getOrdersByCustomerId(int id){
+    public Optional<List<Order>> getOrdersByCustomerId(int id){
         return custRepo.getOrdersByCustomerId(id);
     }
 }

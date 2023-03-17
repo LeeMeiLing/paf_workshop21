@@ -1,21 +1,19 @@
 package sg.edu.nus.iss.paf_workshop21.repositories;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
 import org.springframework.stereotype.Repository;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import sg.edu.nus.iss.paf_workshop21.models.Customer;
 import sg.edu.nus.iss.paf_workshop21.models.Order;
@@ -80,7 +78,7 @@ public class CustomerRepo {
         try{
 
             customer = jdbcTemplate.queryForObject(findByIdSQL, 
-            BeanPropertyRowMapper.newInstance(Customer.class), id);
+                BeanPropertyRowMapper.newInstance(Customer.class), id);
 
             if (null == customer){
                 return Optional.empty();
@@ -89,19 +87,21 @@ public class CustomerRepo {
             }
 
 
-        // catch exception because jdbcTemplate.queryForObject() raise exception instead of return null when ID not found
+        // catch exception because jdbcTemplate.queryForObject() throws IncorrectResultSizeDataAccessException if the query 
+        // does not return exactly one row, instead of return null when ID not found
         }catch(Exception ex){     
 
-            if (null == customer){
+            // if (IncorrectResultSizeDataAccessException.class.isInstance(ex)){
+            if (ex instanceof EmptyResultDataAccessException){
                 return Optional.empty();
             }else{
                 throw ex;
             }
-    
+
         }
     }
 
-    public List<Order> getOrdersByCustomerId(int id){
+    public Optional<List<Order>> getOrdersByCustomerId(int id){
 
         // // ============= Alternative Approach 1 =================
         // List<Order> orderList = new ArrayList<>();
@@ -109,6 +109,11 @@ public class CustomerRepo {
         // return Collections.unmodifiableList(orderList);
 
         // // ============= Alternative Approach 2 =================
+
+        // check if customer ID exists
+        if(this.getCustomerById(id).isEmpty()){
+            return Optional.empty();
+        }
         
         final List<Order> orderList = new ArrayList<>();
         final SqlRowSet rs = jdbcTemplate.queryForRowSet(findOrdersByIdSQL, id);
@@ -132,7 +137,6 @@ public class CustomerRepo {
             // Object o = rs.getObject("order_date");
             // System.out.println("========= o is " + o.getClass().getName()); // output: java.time.LocalDateTime
             
-
             order.setOrderDate((LocalDateTime) rs.getObject("order_date"));
             order.setShippedDate((LocalDateTime) rs.getObject("shipped_date"));
             order.setShipperId(rs.getInt("shipper_id"));
@@ -154,7 +158,7 @@ public class CustomerRepo {
             orderList.add(order);
         }
 
-        return Collections.unmodifiableList(orderList);
+        return Optional.of(Collections.unmodifiableList(orderList));
 
     }
 
